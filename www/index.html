@@ -22,6 +22,7 @@
       
       //Cameraボタンのタップ
       cameraButton.onclick = function(){
+      console.log("cameraButton!");
         //Cordovaカメラプラグインの起動
         navigator.camera.getPicture(function(fileUri) {
               //画像が取得できた場合
@@ -43,6 +44,83 @@
             destinationType: Camera.DestinationType.FILE_URI
         });
     };
+    
+    //このキーは個人で取得したので、会社で利用の場合は、取り直してください
+    var apikey = '20cbb7ab3f9eab7cf0d32d508a38ece05edb8502'; 
+    
+    //Face Detectボタンのタップ
+    faceDetectButton.onclick = function() {
+      console.log("faceDetectButton!");
+        //画面の遷移
+        fn.load('settings.html');
+        
+        //画像ファイルのアップロード（顔認識APIの呼出）
+        //var url = 'https://gateway-a.watsonplatform.net/visual-recognition/api/v3/detect_faces?api_key=' + apikey + '&version=2016-05-20';
+        var url   = 'https://gateway-a.watsonplatform.net/visual-recognition/api/v3/detect_faces?api_key=' + apikey + '&version=2016-05-20';
+        var options = new FileUploadOptions();
+        options.fileKey = 'image_file';
+        options.fileName = 'uploadfile.jpg';
+        options.mimeType = 'image/jpeg';
+        options.chunkedMode = false;
+        options.headers = {
+            Connection: "close"
+        };
+        var fileTransfer = new FileTransfer();
+
+        console.log('photoFileUri=' + photoFileUri);
+        console.log('url=' + url);
+
+        fileTransfer.upload(photoFileUri, url, function(r){
+            console.log('api success');
+            console.log('photoFileUri=' + photoFileUri);
+            console.log('url=' + url);
+            //顔認識API
+            var response = JSON.parse(r.response);
+            var image = response.image[0];
+            var text = '';
+            
+            if ('faces' in image) {
+                console.log('faces in image!');
+                if (image.faces.length > 0) {
+                    console.log('image len= ' + image.faces.length);
+                    //顔認識ができた場合
+                    var face = image.faces[0];
+                    //年齢
+                    text += 'Age: ';
+                    if ('max' in face.age && 'min' in face.age) {
+                        //年齢の上限と下限が認識された場合
+                        text += face.age.min + ' - ' + face.age.max + ' (' + face.age.score + ')<br>';
+                    } else if ('max' in face.age) {
+                        //年齢の上限のみ認識された場合
+                        text += face.age.max + face.age.max + ' (' + face.age.score + ')<br>';
+                    } else if('min' in face.age) {
+                        //年齢の下限のみ認識された場合
+                        text += face.age.min + face.age.max + ' (' + face.age.score + ')<br>';
+                    }
+                    //性別
+                    text += 'Gender: ' + face.gender.gender + ' (' + face.gender.score + ')';
+                } else {
+                    //顔が認識出来なかった場合
+                    text += 'not found!';
+                }
+            } else if ('error' in image) {
+                //その他のエラーがあった場合
+                text += image.error.description;
+            }
+            //recognize...部分を書き換え
+            var message = document.getElementById('message');
+            message.innerHTML = text;
+        }, 
+        function(error){
+            console.log("An error has occurred: Code = " + error.code);
+            console.log("upload error source " + error.source);
+            console.log("upload error target " + error.target);
+            alert(error.code);
+        }, 
+        options)
+    }
+    
+    
     });
 
     window.fn = {};
@@ -93,7 +171,7 @@
         </div>
       </ons-toolbar>
       <p style="text-align: center; opacity: 0.6; padding-top: 20px;">
-        zitte motor sycle
+        zitte motor cycle
       </p>
       
       <div style="text-align: center; padding: 1em;">
